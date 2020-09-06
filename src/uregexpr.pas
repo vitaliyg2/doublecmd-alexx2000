@@ -5,7 +5,7 @@ unit uRegExpr;
 interface
 
 uses
-  Classes, SysUtils, LConvEncoding, uConvEncoding, uRegExprA, uRegExprW, uRegExprU;
+  Classes, SysUtils, LConvEncoding, uConvEncoding, RegExpr, uRegExprA, uRegExprW;
 
 type
   TRegExprType = (retAnsi, retUtf16le, retUtf8);
@@ -19,7 +19,6 @@ type
     FEncoding: String;
     FRegExpA: TRegExpr;
     FRegExpW: TRegExprW;
-    FRegExpU: TRegExprU;
     FType: TRegExprType;
     procedure SetExpression(AValue: String);
     function GetMatchLen(Idx : Integer): PtrInt;
@@ -46,17 +45,15 @@ uses
 procedure TRegExprEx.SetExpression(AValue: String);
 begin
   case FType of
-    retUtf8:    FRegExpU.Expression:= AValue;
     retUtf16le: FRegExpW.Expression:= UTF8ToUTF16(AValue);
-    retAnsi:    FRegExpA.Expression:= ConvertEncoding(AValue, EncodingUTF8, FEncoding);
+    retAnsi, retUtf8:    FRegExpA.Expression:= ConvertEncoding(AValue, EncodingUTF8, FEncoding);
   end;
 end;
 
 function TRegExprEx.GetMatchLen(Idx: integer): PtrInt;
 begin
   case FType of
-    retAnsi:    Result:= FRegExpA.MatchLen[Idx];
-    retUtf8:    Result:= FRegExpU.MatchLen[Idx];
+    retAnsi, retUtf8:    Result:= FRegExpA.MatchLen[Idx];
     retUtf16le: Result:= FRegExpW.MatchLen[Idx] * SizeOf(WideChar);
   end;
 end;
@@ -64,8 +61,7 @@ end;
 function TRegExprEx.GetMatchPos(Idx: integer): PtrInt;
 begin
   case FType of
-    retAnsi:    Result:= FRegExpA.MatchPos[Idx];
-    retUtf8:    Result:= FRegExpU.MatchPos[Idx];
+    retAnsi, retUtf8:    Result:= FRegExpA.MatchPos[Idx];
     retUtf16le: Result:= FRegExpW.MatchPos[Idx] * SizeOf(WideChar);
   end;
 end;
@@ -73,7 +69,6 @@ end;
 constructor TRegExprEx.Create(const AEncoding: String);
 begin
   FRegExpW:= TRegExprW.Create;
-  FRegExpU:= TRegExprU.Create;
   FRegExpA:= TRegExpr.Create(AEncoding);
 end;
 
@@ -81,15 +76,13 @@ destructor TRegExprEx.Destroy;
 begin
   FRegExpA.Free;
   FRegExpW.Free;
-  FRegExpU.Free;
   inherited Destroy;
 end;
 
 function TRegExprEx.Exec(AOffset: UIntPtr): Boolean;
 begin
   case FType of
-    retAnsi:    Result:= FRegExpA.Exec(AOffset);
-    retUtf8:    Result:= FRegExpU.Exec(AOffset);
+    retAnsi, retUtf8:    Result:= FRegExpA.Exec(AOffset);
     retUtf16le: Result:= FRegExpW.Exec((AOffset + 1) div SizeOf(WideChar));
   end;
 end;
@@ -110,8 +103,7 @@ end;
 procedure TRegExprEx.SetInputString(AInputString: Pointer; ALength: UIntPtr);
 begin
   case FType of
-    retAnsi:    FRegExpA.SetInputString(AInputString, ALength);
-    retUtf8:    FRegExpU.SetInputString(AInputString, ALength);
+    retAnsi, retUtf8:    FRegExpA.SetInputString(AInputString, ALength);
     retUtf16le: FRegExpW.SetInputString(AInputString, ALength div SizeOf(WideChar));
   end;
 end;
